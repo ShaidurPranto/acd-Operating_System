@@ -50,6 +50,96 @@ get_function_count() { # need to update regex for c,c++ and java
 }
 
 
+run_cpp_with_input() {
+    local cpp_file="$1"
+    local input_file="$2"
+
+    local dir
+    dir=$(dirname "$cpp_file")
+    local base
+    base=$(basename "$cpp_file" .cpp)
+    local abs_input_file
+    abs_input_file=$(realpath "$input_file")
+
+    local input_filename
+    input_filename=$(basename "$input_file")
+    local output_text="${input_filename: -5:1}"
+
+    pushd "$dir" > /dev/null || return
+
+    g++ "$base.cpp" -o "$base.out"
+    ./"$base.out" < "$abs_input_file" > "out${output_text}.txt"
+
+    popd > /dev/null
+}
+
+run_c_with_input() {
+    local c_file="$1"
+    local input_file="$2"
+
+    local dir
+    dir=$(dirname "$c_file")
+    local base
+    base=$(basename "$c_file" .c)
+    local abs_input_file
+    abs_input_file=$(realpath "$input_file")
+
+    local input_filename
+    input_filename=$(basename "$input_file")
+    local output_text="${input_filename: -5:1}"
+
+    pushd "$dir" > /dev/null || return
+
+    gcc "$base.c" -o "$base.out"
+    ./"$base.out" < "$abs_input_file" > "out${output_text}.txt"
+
+    popd > /dev/null
+}
+
+run_java_with_input() {
+    local java_file="$1"
+    local input_file="$2"
+
+    local dir
+    dir=$(dirname "$java_file")
+    local base
+    base=$(basename "$java_file" .java)
+    local abs_input_file
+    abs_input_file=$(realpath "$input_file")
+
+    local input_filename
+    input_filename=$(basename "$input_file")
+    local output_text="${input_filename: -5:1}"
+
+    pushd "$dir" > /dev/null || return
+
+    javac "$base.java"
+    java "$base" < "$abs_input_file" > "out${output_text}.txt"
+
+    popd > /dev/null
+}
+
+run_py_with_input() {
+    local py_file="$1"
+    local input_file="$2"
+
+    local dir
+    dir=$(dirname "$py_file")
+    local base
+    base=$(basename "$py_file")
+    local abs_input_file
+    abs_input_file=$(realpath "$input_file")
+
+    local input_filename
+    input_filename=$(basename "$input_file")
+    local output_text="${input_filename: -5:1}"
+
+    pushd "$dir" > /dev/null || return
+
+    python3 "$base" < "$abs_input_file" > "out${output_text}.txt"
+
+    popd > /dev/null
+}
 
 
 # extracting commamd line arguments
@@ -112,6 +202,8 @@ echo "-nocc : $is_nocc"
 echo "-nofc : $is_nofc"
 
 # implementing tasks
+rm -r "$target"
+echo "previous target folder removed"
 echo ""
 echo ""
 echo "going through each .zip file of the submission path"
@@ -132,34 +224,52 @@ for i in "$submission"/*.zip; do
     echo "copying source code to a temp folder"
     mkdir -p "$temp_source_code" # this is a temporary folder
     find "$unzip/$filename" -type f \( -name "*.c" -o -name "*.cpp" -o -name "*.py" -o -name "*.java" \) -exec cp {} "$temp_source_code" \;
-    j=$(find "$temp_source_code" -type f)
 
     echo "creating and copying source code to target folder"
+    j=$(find "$temp_source_code" -type f)
     extension="${j##*.}"
-    new_file="$temp_source_code/main.$extension"
-    mv -f "$j" "$new_file"
     if [ "$extension" == "cpp" ]; then
         capitalized="C++"
-    elif [ "$extension" == "py" ]; then
-        capitalized="Python"    
+        main="main"
+    elif [ "$extension" == "java" ]; then
+        capitalized="Java"
+        main="Main"
+    elif [ "$extension" == "c" ]; then
+        capitalized="C"
+        main="main"        
     else 
-        capitalized="${extension^}"
+        capitalized="Python"
+        main="main"
     fi
+    new_file="$temp_source_code/$main.$extension"
+    if [ "$j" != "$new_file" ]; then
+        mv -f "$j" "$new_file"
+    fi    
     mkdir -p "$target/$capitalized/$id"
     cp "$new_file" "$target/$capitalized/$id"
     rm "$new_file"
 
     # Task B
     echo "getting code metrics"
-    lineCount=$(get_line_count "$target/$capitalized/$id/main.$extension")
+    lineCount=$(get_line_count "$target/$capitalized/$id/$main.$extension")
     echo "line count is : $lineCount"
-    commentCount=$(get_comment_count "$target/$capitalized/$id/main.$extension")
+    commentCount=$(get_comment_count "$target/$capitalized/$id/$main.$extension")
     echo "commnet count is : $commentCount"
-    countFunc=$(get_function_count "$target/$capitalized/$id/main.$extension")
+    countFunc=$(get_function_count "$target/$capitalized/$id/$main.$extension")
     echo "Function count is : $countFunc"
 
-
     # Task C
+    for j in "$test"/*.txt; do
+        if [ "$extension" == "cpp" ]; then
+            run_cpp_with_input "$target/$capitalized/$id/main.cpp" "$j"
+        elif [ "$extension" == "py" ]; then
+            run_py_with_input "$target/$capitalized/$id/main.py" "$j"
+        elif [ "$extension" == "java" ]; then
+            run_java_with_input "$target/$capitalized/$id/Main.java" "$j"
+        else
+            run_c_with_input "$target/$capitalized/$id/main.c" "$j"
+        fi
+    done
 
 
 done
