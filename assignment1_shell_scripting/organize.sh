@@ -1,6 +1,5 @@
 #!/bin/bash
-
-# functions
+########################### functions
 print_array() {
     for element in "$@"; do
         echo "$element"
@@ -28,7 +27,7 @@ get_comment_count() {
     echo "$count"
 }
 
-get_function_count() { # need to update regex for c,c++ and java
+get_function_count() {
     local file="$1"
     local extension="${file##*.}"
     local count=0
@@ -48,7 +47,6 @@ get_function_count() { # need to update regex for c,c++ and java
 
     echo "$count"
 }
-
 
 run_cpp_with_input() {
     local cpp_file="$1"
@@ -141,8 +139,52 @@ run_py_with_input() {
     popd > /dev/null
 }
 
+count_txt_files() {
+    local path="$1"      
+    local count=0
 
-# extracting commamd line arguments
+    for i in "$path"/*.txt; do
+        [ -e "$i" ] || continue
+        ((count++))
+    done
+
+    echo "$count"
+}
+
+match_output() {
+    local out="$1"    
+    local answer="$2"  
+    local matched=0
+
+    for i in "$answer"/ans*.txt; do
+        number=$(basename "$i" .txt)
+        number=${number:3}
+
+        ans_file="$i"
+        out_file="$out/out$number.txt"
+
+        if [ -f "$out_file" ]; then
+            if diff -q "$ans_file" "$out_file" > /dev/null; then
+                ((matched++))
+            fi
+        fi
+    done
+
+    echo "$matched"
+}
+
+generate_report() {
+    local id="$1"
+    local name="$2"
+    local extension="$3"
+    local matched="$4"
+    local mismatched="$5"
+    local lineCount="$6"
+    local commentCount="$7"
+    local functionCount="$8"
+}
+
+############################## extracting commamd line arguments
 len=$#
 total_arg=$@
 args=("$@")
@@ -201,7 +243,7 @@ echo "-nolc : $is_nolc"
 echo "-nocc : $is_nocc"
 echo "-nofc : $is_nofc"
 
-# implementing tasks
+########################################### implementing tasks
 rm -r "$target"
 echo "previous target folder removed"
 echo ""
@@ -271,9 +313,15 @@ for i in "$submission"/*.zip; do
         fi
     done
 
+    total_test=$(count_txt_files "$answer")
+    output_matched=$(match_output "$target/$capitalized/$id" "$answer")
+    output_mismatched=$((total_test - output_matched))
+    echo "output matched : $output_matched"
+    echo "output mismatched : $output_mismatched"
 
 done
 
+################################################### clean up 
 echo "removing the $unzip folder"
 rm -rf $unzip
 echo "removing the temp_source_code folder"
