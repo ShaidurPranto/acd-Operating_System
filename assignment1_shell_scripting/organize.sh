@@ -4,6 +4,23 @@ len=$#
 total_arg=$@
 args=("$@")
 
+if (( len < 4 )); then 
+    echo ""
+    echo "Mandatory arguments are (in order) :"
+    echo "path_of_zip_submissions"
+    echo "path_of_target"
+    echo "path_of_test"
+    echo "path_of_answer"
+    echo ""
+    echo "optional arguments are :"
+    echo "-v : prints different work processes"
+    echo "-noexecute : doesn't execute the source codes"
+    echo "-nolc : doesn't count and show the number of lines in source code"
+    echo "-nocc : doesn't count and show the number of single line commnets in source code"
+    echo "-nofc : doesn't count and show the number of functions in source code"
+    exit 1
+fi
+
 submission=$1
 target=$2
 test=$3
@@ -275,6 +292,10 @@ for i in "$submission"/*.zip; do
     id="${filename:(-7):7}"
     studentName=${filename:0:-27}
 
+    if [ "$is_v" -eq 1 ]; then
+        echo "Organizing files of $id"
+    fi
+
     # create a temporary folder and unzip there
     mkdir -p "$unzip/$filename"
     unzip -qq "$i" -d "$unzip/$filename"
@@ -319,17 +340,24 @@ for i in "$submission"/*.zip; do
     countFunc=$(get_function_count "$target/$capitalized/$id/$main.$extension")
 
     # execute source code for each test case
-    for j in "$test"/*.txt; do
-        if [ "$extension" == "cpp" ]; then
-            run_cpp_with_input "$target/$capitalized/$id/main.cpp" "$j"
-        elif [ "$extension" == "py" ]; then
-            run_py_with_input "$target/$capitalized/$id/main.py" "$j"
-        elif [ "$extension" == "java" ]; then
-            run_java_with_input "$target/$capitalized/$id/Main.java" "$j"
-        else
-            run_c_with_input "$target/$capitalized/$id/main.c" "$j"
+    if [ "$is_noexecute" -eq 0 ]; then
+
+        if [ "$is_v" -eq 1 ]; then
+            echo "executing files of $id"
         fi
-    done
+
+        for j in "$test"/*.txt; do
+            if [ "$extension" == "cpp" ]; then
+                run_cpp_with_input "$target/$capitalized/$id/main.cpp" "$j"
+            elif [ "$extension" == "py" ]; then
+                run_py_with_input "$target/$capitalized/$id/main.py" "$j"
+            elif [ "$extension" == "java" ]; then
+                run_java_with_input "$target/$capitalized/$id/Main.java" "$j"
+            else
+                run_c_with_input "$target/$capitalized/$id/main.c" "$j"
+            fi
+        done
+    fi
 
     # get matched and unmatched count
     total_test=$(count_txt_files "$answer")
@@ -341,10 +369,13 @@ for i in "$submission"/*.zip; do
 
 done
 
+
+if [ "$is_v" -eq 1 ]; then
+    echo "All submissions processed successfully"
+fi
 # delete temporary folders
 rm -rf $unzip
 rm -rf "$temp_source_code"
-
 
 
 
