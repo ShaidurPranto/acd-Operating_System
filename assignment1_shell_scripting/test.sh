@@ -1,4 +1,3 @@
-hey="5"
-hello="2"
-ans=$((hey - hello))
-echo "$ans"
+string="Carol Danvers_1000001_submission_2105221.zip"
+name=${string:0:-31}
+echo "$name"

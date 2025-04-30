@@ -1,4 +1,44 @@
 #!/bin/bash
+############################## extracting commamd line arguments
+len=$#
+total_arg=$@
+args=("$@")
+
+submission=$1
+target=$2
+test=$3
+answer=$4
+
+flags=()
+for (( i=4; i<len; i++ )); do
+    flags+=("${args[$i]}")
+done
+
+is_v="0"
+is_noexecute="0"
+is_nolc="0"
+is_nocc="0"
+is_nofc="0"
+for i in "${flags[@]}"; do
+    if [ "$i" == "-v" ]; then
+        is_v="1"
+    elif [ "$i" == "-noexecute" ]; then
+        is_noexecute="1"
+    elif [ "$i" == "-nolc" ]; then
+        is_nolc="1"
+    elif [ "$i" == "-nocc" ]; then
+        is_nocc="1"
+    elif [ "$i" == "-nofc" ]; then
+        is_nofc="1"
+    fi
+done
+
+echo "-v : $is_v"
+echo "-noexecute : $is_noexecute"
+echo "-nolc : $is_nolc"
+echo "-nocc : $is_nocc"
+echo "-nofc : $is_nofc"
+
 ########################### functions
 print_array() {
     for element in "$@"; do
@@ -173,6 +213,29 @@ match_output() {
     echo "$matched"
 }
 
+generate_report_header() {
+    local csv_file="$target/result.csv"
+
+    mkdir -p "$target"
+
+    if [ ! -f "$csv_file" ]; then
+        header="student_id,student_name,language"
+        if [ "$is_noexecute" -eq 0 ]; then
+            header+=",matched,not_matched"
+        fi
+        if [ "$is_nolc" -eq 0 ]; then
+            header+=",line_count"
+        fi
+        if [ "$is_nocc" -eq 0 ]; then
+            header+=",comment_count"
+        fi
+        if [ "$is_nofc" -eq 0 ]; then
+            header+=",function_count"
+        fi
+        echo "$header" > "$csv_file"
+    fi
+}
+
 generate_report() {
     local id="$1"
     local name="$2"
@@ -182,84 +245,39 @@ generate_report() {
     local lineCount="$6"
     local commentCount="$7"
     local functionCount="$8"
+
+    local csv_file="$target/result.csv"
+
+    row="$id,\"$name\",$extension"
+    if [ "$is_noexecute" -eq 0 ]; then
+        row+=",$matched,$mismatched"
+    fi
+    if [ "$is_nolc" -eq 0 ]; then
+        row+=",$lineCount"
+    fi
+    if [ "$is_nocc" -eq 0 ]; then
+        row+=",$commentCount"
+    fi
+    if [ "$is_nofc" -eq 0 ]; then
+        row+=",$functionCount"
+    fi
+
+    echo "$row" >> "$csv_file"
 }
 
-############################## extracting commamd line arguments
-len=$#
-total_arg=$@
-args=("$@")
-
-echo "total number of arguments: $len"
-echo "all arguments at once is : $total_arg"
-echo "now printing all the arguments received"
-print_array "${args[@]}"
-echo "printed all the arguments"
-
-submission=$1
-target=$2
-test=$3
-answer=$4
-
-echo "submission path is : $submission"
-echo "target path is : $target"
-echo "test path is : $test"
-echo "answer path is : $answer"
-
-echo "extracting the flags"
-flags=()
-for (( i=4; i<len; i++ )); do
-    flags+=("${args[$i]}")
-done
-
-echo "flags received:"
-print_array "${flags[@]}"
-
-echo "printing flag values"
-
-is_v="0"
-is_noexecute="0"
-is_nolc="0"
-is_nocc="0"
-is_nofc="0"
-
-for i in "${flags[@]}"; do
-    if [ "$i" == "-v" ]; then
-        is_v="1"
-    elif [ "$i" == "-noexecute" ]; then
-        is_noexecute="1"
-    elif [ "$i" == "-nolc" ]; then
-        is_nolc="1"
-    elif [ "$i" == "-nocc" ]; then
-        is_nocc="1"
-    elif [ "$i" == "-nofc" ]; then
-        is_nofc="1"
-    fi
-done
-
-
-echo "-v : $is_v"
-echo "-noexecute : $is_noexecute"
-echo "-nolc : $is_nolc"
-echo "-nocc : $is_nocc"
-echo "-nofc : $is_nofc"
 
 ########################################### implementing tasks
-rm -r "$target"
-echo "previous target folder removed"
-echo ""
-echo ""
-echo "going through each .zip file of the submission path"
-
 unzip="./unzipped"
 temp_source_code="./source_code"
+rm -r "$target"
+generate_report_header
+
 
 for i in "$submission"/*.zip; do
     # Task A
-    echo ""
-
-    echo "unzipping: $i"
     filename=$(basename "$i" .zip)
     id="${filename:(-7):7}"
+    studentName=${filename:0:-27}
     mkdir -p "$unzip/$filename" # this is a temporary folder
     unzip -qq "$i" -d "$unzip/$filename"
 
@@ -318,6 +336,8 @@ for i in "$submission"/*.zip; do
     output_mismatched=$((total_test - output_matched))
     echo "output matched : $output_matched"
     echo "output mismatched : $output_mismatched"
+
+    generate_report "$id" "$studentName" "$capitalized" "$output_matched" "$output_mismatched" "$lineCount" "$commentCount" "$countFunc"
 
 done
 
