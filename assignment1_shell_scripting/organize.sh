@@ -1,5 +1,5 @@
 #!/bin/bash
-############################## extracting commamd line arguments
+################################################### extracting commamd line arguments
 len=$#
 total_arg=$@
 args=("$@")
@@ -33,13 +33,7 @@ for i in "${flags[@]}"; do
     fi
 done
 
-echo "-v : $is_v"
-echo "-noexecute : $is_noexecute"
-echo "-nolc : $is_nolc"
-echo "-nocc : $is_nocc"
-echo "-nofc : $is_nofc"
-
-########################### functions
+################################################### functions
 print_array() {
     for element in "$@"; do
         echo "$element"
@@ -266,28 +260,34 @@ generate_report() {
 }
 
 
-########################################### implementing tasks
+################################################### implementing tasks
 unzip="./unzipped"
 temp_source_code="./source_code"
-rm -r "$target"
+
+if [ -d "$target" ]; then
+    rm -r "$target"
+fi
 generate_report_header
 
-
 for i in "$submission"/*.zip; do
-    # Task A
+    # extract information from file 
     filename=$(basename "$i" .zip)
     id="${filename:(-7):7}"
     studentName=${filename:0:-27}
-    mkdir -p "$unzip/$filename" # this is a temporary folder
+
+    # create a temporary folder and unzip there
+    mkdir -p "$unzip/$filename"
     unzip -qq "$i" -d "$unzip/$filename"
 
-    echo "copying source code to a temp folder"
-    mkdir -p "$temp_source_code" # this is a temporary folder
+    # create another temporary folder and copy the source code from the unzip folder
+    mkdir -p "$temp_source_code"
     find "$unzip/$filename" -type f \( -name "*.c" -o -name "*.cpp" -o -name "*.py" -o -name "*.java" \) -exec cp {} "$temp_source_code" \;
 
-    echo "creating and copying source code to target folder"
+    # find the source code and extract file type
     j=$(find "$temp_source_code" -type f)
     extension="${j##*.}"
+
+    # prepare file name and destination folder
     if [ "$extension" == "cpp" ]; then
         capitalized="C++"
         main="main"
@@ -301,24 +301,24 @@ for i in "$submission"/*.zip; do
         capitalized="Python"
         main="main"
     fi
+
+    # rename source code
     new_file="$temp_source_code/$main.$extension"
     if [ "$j" != "$new_file" ]; then
         mv -f "$j" "$new_file"
-    fi    
+    fi
+
+    # move the source code to target folder 
     mkdir -p "$target/$capitalized/$id"
     cp "$new_file" "$target/$capitalized/$id"
     rm "$new_file"
 
-    # Task B
-    echo "getting code metrics"
+    # get line count , comment count , function count of source code
     lineCount=$(get_line_count "$target/$capitalized/$id/$main.$extension")
-    echo "line count is : $lineCount"
     commentCount=$(get_comment_count "$target/$capitalized/$id/$main.$extension")
-    echo "commnet count is : $commentCount"
     countFunc=$(get_function_count "$target/$capitalized/$id/$main.$extension")
-    echo "Function count is : $countFunc"
 
-    # Task C
+    # execute source code for each test case
     for j in "$test"/*.txt; do
         if [ "$extension" == "cpp" ]; then
             run_cpp_with_input "$target/$capitalized/$id/main.cpp" "$j"
@@ -331,20 +331,21 @@ for i in "$submission"/*.zip; do
         fi
     done
 
+    # get matched and unmatched count
     total_test=$(count_txt_files "$answer")
     output_matched=$(match_output "$target/$capitalized/$id" "$answer")
     output_mismatched=$((total_test - output_matched))
-    echo "output matched : $output_matched"
-    echo "output mismatched : $output_mismatched"
 
+    # generate report
     generate_report "$id" "$studentName" "$capitalized" "$output_matched" "$output_mismatched" "$lineCount" "$commentCount" "$countFunc"
 
 done
 
-################################################### clean up 
-echo "removing the $unzip folder"
+# delete temporary folders
 rm -rf $unzip
-echo "removing the temp_source_code folder"
 rm -rf "$temp_source_code"
+
+
+
 
 # ./organize.sh ./Shell-Scripting-Assignment-Files/Workspace/submissions ./Shell-Scripting-Assignment-Files/My_match/ ./Shell-Scripting-Assignment-Files/Workspace/tests ./Shell-Scripting-Assignment-Files/Workspace/answers
