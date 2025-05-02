@@ -335,9 +335,18 @@ for i in "$submission"/*.zip; do
     rm "$new_file"
 
     # get line count , comment count , function count of source code
-    lineCount=$(get_line_count "$target/$capitalized/$id/$main.$extension")
-    commentCount=$(get_comment_count "$target/$capitalized/$id/$main.$extension")
-    countFunc=$(get_function_count "$target/$capitalized/$id/$main.$extension")
+    lineCount="0"
+    commentCount="0"
+    functionCount="0"
+    if [ "$is_nolc" -eq 0 ]; then
+        lineCount=$(get_line_count "$target/$capitalized/$id/$main.$extension")
+    fi
+    if [ "$is_nocc" -eq 0 ]; then
+        commentCount=$(get_comment_count "$target/$capitalized/$id/$main.$extension")
+    fi
+    if [ "$is_nofc" -eq 0 ]; then
+        countFunc=$(get_function_count "$target/$capitalized/$id/$main.$extension")
+    fi
 
     # execute source code for each test case
     if [ "$is_noexecute" -eq 0 ]; then
