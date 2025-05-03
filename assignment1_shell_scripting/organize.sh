@@ -23,6 +23,7 @@ fi
 
 submission=$1
 target=$2
+# target="$2/targets"
 test=$3
 answer=$4
 
@@ -352,7 +353,7 @@ for i in "$submission"/*.zip; do
     if [ "$is_noexecute" -eq 0 ]; then
 
         if [ "$is_v" -eq 1 ]; then
-            echo "executing files of $id"
+            echo "Executing files of $id"
         fi
 
         for j in "$test"/*.txt; do
@@ -388,4 +389,4 @@ rm -rf "$temp_source_code"
 
 
 
-# ./organize.sh ./Shell-Scripting-Assignment-Files/Workspace/submissions ./Shell-Scripting-Assignment-Files/My_match/ ./Shell-Scripting-Assignment-Files/Workspace/tests ./Shell-Scripting-Assignment-Files/Workspace/answers
+# ./organize.sh ./Shell-Scripting-Assignment-Files/Workspace/submissions ./hey ./Shell-Scripting-Assignment-Files/Workspace/tests ./Shell-Scripting-Assignment-Files/Workspace/answers
